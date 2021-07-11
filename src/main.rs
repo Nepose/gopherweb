@@ -5,14 +5,19 @@ use std::{
     net::TcpStream,
 };
 
+static DEFAULT_URL_SIGN: &str = "welcome to gopherweb";
+static UPDATE_HOST: &str = "157.90.164.160";
+static UPDATE_URL: &str = "/gopherweb/update_list.txt";
+
 mod help;
 
 macro_rules! connect {
-    ($uri_host:expr, $uri_path:expr, $sign:expr, $stack:expr) => {
-        match connect($uri_host, $uri_path, $sign) {
+    ($uri_host:expr, $uri_path:expr, $sign:expr, $stack:expr, $pwd:expr) => {
+        match connect($uri_host, $uri_path, $sign, $pwd) {
             Ok(mut page) => {
                 $stack.push(GopherStream::parse_gopherpage(&mut page));
-                GopherStream::print($stack.last().unwrap().to_vec());
+// Uncomment to get direct display of Gopherpage after visit or cd
+//              GopherStream::print($stack.last().unwrap().to_vec());
             }
             Err(e) => println!("{}", e)
         }
@@ -67,16 +72,17 @@ impl GopherStream {
     }
 }
 
-fn connect(uri_host: &str, uri_path: &str, sign: &mut String) -> Result<String, String> {
+fn connect(uri_host: &str, uri_path: &str, sign: &mut String, pwd: &mut Vec<String>) -> Result<String, String> {
     match TcpStream::connect(format!("{}:70", uri_host)) {
         Ok(mut stream) => {
             let mut content = String::new();
             stream.write(format!("{}\r\n", uri_path).as_bytes()).unwrap();
             stream.flush().unwrap();
             stream.read_to_string(&mut content).unwrap();
-            if uri_path == "/" || sign == "gopherweb" {
+            if uri_host != sign {
                 *sign = uri_host.to_string();
             }
+            pwd.push(format!("{}{}", uri_host, uri_path));
             Ok(content)
         },
         Err(e) => Err(format!("Couldn't connect due to: {}", e))
@@ -84,8 +90,9 @@ fn connect(uri_host: &str, uri_path: &str, sign: &mut String) -> Result<String, 
 }
 
 fn main() {
-    let mut sign = "welcome to gopherweb".to_string();
+    let mut sign = DEFAULT_URL_SIGN.to_string();
     let mut stack: Vec<Vec<GopherStream>> = Vec::new();
+    let mut pwd: Vec<String> = Vec::new();
 
     loop {
         let mut prompt = String::new();
@@ -95,22 +102,23 @@ fn main() {
 
         let vec: Vec<&str> = prompt.trim().split(" ").collect();
         match vec[0] {
-            "home" => connect!("gopher.floodgap.com", "/", &mut sign, &mut stack),
-            "visit" if vec.len() == 2 => connect!(vec[1], "/", &mut sign, &mut stack),
-            "cd" if sign != "welcome to gopherweb".to_string() && vec.len() == 2 => {
+            "home" => connect!("gopher.floodgap.com", "/", &mut sign, &mut stack, &mut pwd),
+            "visit" if vec.len() == 2 => connect!(vec[1], "/", &mut sign, &mut stack, &mut pwd),
+            "cd" if sign != DEFAULT_URL_SIGN.to_string() && vec.len() == 2 => {
                 match vec[1].parse::<usize>() {
                     Ok(num) => {
                         if "1" != stack.last().unwrap().to_vec()[num].gopher_type {
                             println!("Given number doesn't point to directory.");
                         }
                         else {
-                            connect!(sign.clone().as_str(), stack.last().unwrap().to_vec()[num].path.as_str(), &mut sign, &mut stack);
+                            connect!(sign.clone().as_str(), stack.last().unwrap().to_vec()[num].path.as_str(), &mut sign, &mut stack, &mut pwd);
                         }
                     },
                     Err(_e) => {
                         if vec[1] != ".." { println!("Not a number given."); }
                         else {
                             stack.pop();
+                            pwd.pop();
                             GopherStream::print(stack.last().unwrap().to_vec());
                         }
                     }
@@ -119,9 +127,57 @@ fn main() {
             "bye" => break,
             "help" => println!("{}", help::help()),
             "changelog" => println!("{}", help::changelog()),
-            "history" => {
-                println!("{:?}", stack);
+            "pwd" => {
+                for i in 0..pwd.len() {
+                    println!("[{}.] {}", i + 1, pwd[i]);
+                }
+            },
+            "revert" if vec.len() == 2 => {
+                match vec[1].parse::<usize>() {
+                    Ok(i) => {
+                        let tmp_pwd = pwd.clone();
+                        let mut url_iter = tmp_pwd[i-1].splitn(2, '/');
+                        let url_host = url_iter.next().unwrap();
+                        let url_path = url_iter.next().unwrap();
+                        connect!(url_host, url_path, &mut sign, &mut stack, &mut pwd);
+                    },
+                    Err(_e) => println!("Not a number entered.")
+                }
+            },
+            "ls" if sign != DEFAULT_URL_SIGN.to_string() => GopherStream::print(stack.last().unwrap().to_vec()),
+            "show" => {
+                match vec[1].parse::<usize>() {
+                    Ok(num) => {
+                        if "0" != stack.last().unwrap().to_vec()[num].gopher_type {
+                            println!("Given number doesn't point to file.");
+                        }
+                        else {
+                            match connect(sign.clone().as_str(), stack.last().unwrap().to_vec()[num].path.as_str(), &mut sign, &mut pwd) {
+                                Ok(file) => println!("{}", file),
+                                Err(e) => println!("{}", e)
+                            }
+                        }
+                    },
+                    Err(_e) => println!("Not a number given.")
+                }
+            },
+            "update" => {
+                match connect(UPDATE_HOST, UPDATE_URL, &mut sign, &mut pwd) {
+                    Ok(file) => {
+                        sign = DEFAULT_URL_SIGN.to_string();
+                        pwd.pop();
+                        println!("{}", file);
+                    },
+                    Err(e) => println!("{}", e)
+                }
             }
+            "custom" => {
+                match vec.len() {
+                    2 => connect!(sign.clone().as_str(), vec[1], &mut sign, &mut stack, &mut pwd),
+                    3 => connect!(vec[1], vec[2], &mut sign, &mut stack, &mut pwd),
+                    _ => ()
+                }
+            },
             _ => continue
         }
     }
