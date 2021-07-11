@@ -51,10 +51,26 @@ pub fn help() -> &'static str {
 pub fn changelog() -> &'static str {
 "Changelog of Gopherweb:
     
-    Version 0.1.0 - 11 Jul 2021 17:53:01 CEST:
+    Version 0.1.1 - 11 Jul 2021 20:02:13 CEST:
+    [+] Fixing update scheme. Currently it only checks for new versions.
+        Functionality of downloading an update through Internet Gopher
+        will be introduced together with downloading binaries.
+    [+] Fixing typo in README.md.
+    [-] Removing formatting of sign which worked only on Linux terminals.
+        I'll revert it when I learn how to use it on Windows.
+
+    Version 0.1.0 - 11 Jul 2021 19:23:01 CEST:
     [+] Adding commands: pwd, revert, update, custom, show, ls.
     
     Version 0.0.5 - 11 Jul 2021:
     [?] First 'serious', but still in pre-alpha phase commit.
     Available stuff at this moment: visit domains and cd, but not show fikes.
 "}
+
+pub fn get_version() -> &'static str {
+    "0.1.1"
+}
+
+pub fn get_date() -> &'static str {
+    "11 Jul 2021 21:10:45 CEST"
+}

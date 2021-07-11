@@ -8,7 +8,7 @@ Either **use release** (recommended) or by using git and Rust toolchain:
 ```
 git clone https://github.com/Nepose/gopherweb
 cargo build
-./target/debug/gopherweb
+./target/debug/gopherweb (or gopherweb.exe on Windows)
 ```
 
 I'm going to add Makefile soon.
@@ -50,7 +50,7 @@ After launching binary you'll be moved into inner command prompt. The allowed ke
 		Moves you back to particular position from `pwd`.
 
 	update
-		Looks for availability of updates for your Gopherweb installation.
+		Looks for availability of updates for your Gopherweb.
 
 	custom [uri] [path] OR custom [path]
 		An equivalent of address bar in GUI browsers.

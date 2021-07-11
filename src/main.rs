@@ -5,6 +5,8 @@ use std::{
     net::TcpStream,
 };
 
+use serde::Deserialize;
+
 static DEFAULT_URL_SIGN: &str = "welcome to gopherweb";
 static UPDATE_HOST: &str = "157.90.164.160";
 static UPDATE_URL: &str = "/gopherweb/update_list.txt";
@@ -32,6 +34,14 @@ struct GopherStream {
     host: String,
     port: String,
     counter: u32
+}
+
+#[derive(Deserialize)]
+struct UpdateList {
+    name: String,
+    url: String,
+    r#type: String,
+    date: String
 }
 
 impl GopherStream {
@@ -96,7 +106,7 @@ fn main() {
 
     loop {
         let mut prompt = String::new();
-        print!("\x1b[1m[{}]$\x1b[0m ", sign);
+        print!("[{}] $ ", sign);
         io::stdout().flush().unwrap();
         io::stdin().read_line(&mut prompt).unwrap();
 
@@ -116,10 +126,10 @@ fn main() {
                     },
                     Err(_e) => {
                         if vec[1] != ".." { println!("Not a number given."); }
-                        else {
+                        else if pwd.len() > 1 {
                             stack.pop();
                             pwd.pop();
-                            GopherStream::print(stack.last().unwrap().to_vec());
+                            sign = "cd ..".to_string();
                         }
                     }
                 }
@@ -163,14 +173,19 @@ fn main() {
             },
             "update" => {
                 match connect(UPDATE_HOST, UPDATE_URL, &mut sign, &mut pwd) {
-                    Ok(file) => {
+                    Ok(update) => {
                         sign = DEFAULT_URL_SIGN.to_string();
                         pwd.pop();
-                        println!("{}", file);
+                        let update_list: UpdateList = serde_json::from_str(update.as_str()).unwrap();
+                        if update_list.name.as_str() != help::get_version() {
+                            println!("There is an update available!\n    Your current version:     {}\n    Date of current version:  {}\n    New available version:    {}\n    Date of new version:      {}\n    Type of new version:      {}\nVisit repository of Gopherweb in order to download new Gopherweb.", help::get_version(), help::get_date(), update_list.name, update_list.date, update_list.r#type);
+                        } else {
+                            println!("You are up to date.");
+                        }
                     },
                     Err(e) => println!("{}", e)
                 }
-            }
+            },
             "custom" => {
                 match vec.len() {
                     2 => connect!(sign.clone().as_str(), vec[1], &mut sign, &mut stack, &mut pwd),
