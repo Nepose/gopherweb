@@ -1,4 +1,5 @@
 use std::{
+    fs,
     io::{
         self, Read, Write
     },
@@ -10,6 +11,12 @@ use serde::Deserialize;
 static DEFAULT_URL_SIGN: &str = "welcome to gopherweb";
 static UPDATE_HOST: &str = "157.90.164.160";
 static UPDATE_URL: &str = "/gopherweb/update_list.txt";
+
+#[cfg(windows)]
+static GOPHERWEB_DIR: &str = "C:\\Program Files\\gopherweb";
+
+#[cfg(unix)]
+static GOPHERWEB_DIR: &str = "/var/cache/gopherweb";
 
 mod help;
 
@@ -39,7 +46,7 @@ struct GopherStream {
 #[derive(Deserialize)]
 struct UpdateList {
     name: String,
-    url: String,
+    path: String,
     r#type: String,
     date: String
 }
@@ -74,6 +81,11 @@ impl GopherStream {
             match line.gopher_type.as_str() {
                 "0" => println!("[File] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),
                 "1" => println!("[Directory] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),
+/*                "2" => println!("[CSO phonebook] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),
+                "5" => println!("[DOS binary archive] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),
+                "6" => println!("[Unix uuencoded file] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),
+                "7" => println!("[Search] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),
+                "9" => println!("[Binary file] {}\n     {} -> //{}{}", line.title, line.counter, line.host, line.path),*/
                 "i" => println!("{}", line.title),
                 "h" => println!("[HTTP] {}\n     {} -> {}", line.title, line.counter, line.path),
                 _ => continue,
@@ -112,6 +124,12 @@ fn main() {
 
         let vec: Vec<&str> = prompt.trim().split(" ").collect();
         match vec[0] {
+            "debug" if vec.len() == 2 => {
+                match vec[1] {
+                    "dir" => println!("{}", GOPHERWEB_DIR),
+                    _ => ()
+                }
+            },
             "home" => connect!("gopher.floodgap.com", "/", &mut sign, &mut stack, &mut pwd),
             "visit" if vec.len() == 2 => connect!(vec[1], "/", &mut sign, &mut stack, &mut pwd),
             "cd" if sign != DEFAULT_URL_SIGN.to_string() && vec.len() == 2 => {
@@ -178,7 +196,23 @@ fn main() {
                         pwd.pop();
                         let update_list: UpdateList = serde_json::from_str(update.as_str()).unwrap();
                         if update_list.name.as_str() != help::get_version() {
-                            println!("There is an update available!\n    Your current version:     {}\n    Date of current version:  {}\n    New available version:    {}\n    Date of new version:      {}\n    Type of new version:      {}\nVisit repository of Gopherweb in order to download new Gopherweb.", help::get_version(), help::get_date(), update_list.name, update_list.date, update_list.r#type);
+                            println!("There is an update available!\n    Your current version:     {}\n    Date of current version:  {}\n    New available version:    {}\n    Date of new version:      {}\n    Type of new version:      {}\n", help::get_version(), help::get_date(), update_list.name, update_list.date, update_list.r#type);
+                            print!("Do you want to download new version? [yes or no] $ ");
+                            let mut input = String::new();
+                            io::stdout().flush().unwrap();
+                            io::stdin().read_line(&mut input).unwrap();
+                            if input.trim() == "yes" {
+                                match connect(UPDATE_HOST, update_list.path.as_str(), &mut sign, &mut pwd) {
+                                    Ok(update) => {
+                                        sign = DEFAULT_URL_SIGN.to_string();
+                                        pwd.pop();
+                                        fs::write(format!("{}/{}.tgz", GOPHERWEB_DIR, update_list.name).as_str(), update.as_str())
+                                            .expect("Couldn't save update file on your computer.");
+                                        println!("Succesfully saved new version of Gopherweb in {}.", GOPHERWEB_DIR);
+                                    },
+                                    Err(_e) => println!("Couldn't download update file.")
+                                }
+                            }
                         } else {
                             println!("You are up to date.");
                         }

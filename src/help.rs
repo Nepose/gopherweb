@@ -51,6 +51,13 @@ pub fn help() -> &'static str {
 pub fn changelog() -> &'static str {
 "Changelog of Gopherweb:
     
+    Version 0.1.2 - 12 Jul 2021 11:00:38 CEST:
+    [+] Now Gopherweb lets you download new version after `update`
+        directly from its inner command prompt. You're supposed to
+        create directory `C:\\Program Files\\Gopherweb` (on Windows)
+        or `/var/cache/gopherweb` in order to use this function.
+        Automatizing it is planned.
+
     Version 0.1.1 - 11 Jul 2021 20:02:13 CEST:
     [+] Fixing update scheme. Currently it only checks for new versions.
         Functionality of downloading an update through Internet Gopher
@@ -68,9 +75,9 @@ pub fn changelog() -> &'static str {
 "}
 
 pub fn get_version() -> &'static str {
-    "0.1.1"
+    "0.1.2"
 }
 
 pub fn get_date() -> &'static str {
-    "11 Jul 2021 21:10:45 CEST"
+    "12 Jul 2021 11:00:38 CEST"
 }

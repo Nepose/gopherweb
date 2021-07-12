@@ -11,7 +11,11 @@ cargo build
 ./target/debug/gopherweb (or gopherweb.exe on Windows)
 ```
 
-I'm going to add Makefile soon.
+After installing create a cache directory. It's supposed to be located:
+- on Windows at `C:\Program Files\gopherweb` while
+- on Linux at `/var/cache/gopherweb`.
+
+I'm going to add Makefile and automatize creating cache directory soon.
 
 ## How to use
 
