@@ -13,7 +13,7 @@ static UPDATE_HOST: &str = "157.90.164.160";
 static UPDATE_URL: &str = "/gopherweb/update_list.txt";
 
 #[cfg(windows)]
-static GOPHERWEB_DIR: &str = "C:\\Program Files\\gopherweb";
+static GOPHERWEB_DIR: &str = "C:\\gopherweb";
 
 #[cfg(unix)]
 static GOPHERWEB_DIR: &str = "/var/cache/gopherweb";
@@ -23,11 +23,7 @@ mod help;
 macro_rules! connect {
     ($uri_host:expr, $uri_path:expr, $sign:expr, $stack:expr, $pwd:expr) => {
         match connect($uri_host, $uri_path, $sign, $pwd) {
-            Ok(mut page) => {
-                $stack.push(GopherStream::parse_gopherpage(&mut page));
-// Uncomment to get direct display of Gopherpage after visit or cd
-//              GopherStream::print($stack.last().unwrap().to_vec());
-            }
+            Ok(mut page) => $stack.push(GopherStream::parse_gopherpage(&mut page)),
             Err(e) => println!("{}", e)
         }
     };
@@ -97,15 +93,15 @@ impl GopherStream {
 fn connect(uri_host: &str, uri_path: &str, sign: &mut String, pwd: &mut Vec<String>) -> Result<String, String> {
     match TcpStream::connect(format!("{}:70", uri_host)) {
         Ok(mut stream) => {
-            let mut content = String::new();
+            let mut content: Vec<u8> = vec![];
             stream.write(format!("{}\r\n", uri_path).as_bytes()).unwrap();
             stream.flush().unwrap();
-            stream.read_to_string(&mut content).unwrap();
+            stream.read_to_end(&mut content).unwrap();
             if uri_host != sign {
                 *sign = uri_host.to_string();
             }
             pwd.push(format!("{}{}", uri_host, uri_path));
-            Ok(content)
+            Ok(String::from_utf8_lossy(&content).to_string())
         },
         Err(e) => Err(format!("Couldn't connect due to: {}", e))
     }
@@ -115,6 +111,14 @@ fn main() {
     let mut sign = DEFAULT_URL_SIGN.to_string();
     let mut stack: Vec<Vec<GopherStream>> = Vec::new();
     let mut pwd: Vec<String> = Vec::new();
+    
+    match help::check_gopherweb_dir(&GOPHERWEB_DIR) {
+        Ok(()) => (),
+        Err(e) => {
+            println!("{}", e);
+            std::process::exit(1);
+        }
+    }
 
     loop {
         let mut prompt = String::new();
@@ -124,12 +128,6 @@ fn main() {
 
         let vec: Vec<&str> = prompt.trim().split(" ").collect();
         match vec[0] {
-            "debug" if vec.len() == 2 => {
-                match vec[1] {
-                    "dir" => println!("{}", GOPHERWEB_DIR),
-                    _ => ()
-                }
-            },
             "home" => connect!("gopher.floodgap.com", "/", &mut sign, &mut stack, &mut pwd),
             "visit" if vec.len() == 2 => connect!(vec[1], "/", &mut sign, &mut stack, &mut pwd),
             "cd" if sign != DEFAULT_URL_SIGN.to_string() && vec.len() == 2 => {
@@ -139,7 +137,7 @@ fn main() {
                             println!("Given number doesn't point to directory.");
                         }
                         else {
-                            connect!(sign.clone().as_str(), stack.last().unwrap().to_vec()[num].path.as_str(), &mut sign, &mut stack, &mut pwd);
+                            connect!(stack.last().unwrap().to_vec()[num].host.as_str(), stack.last().unwrap().to_vec()[num].path.as_str(), &mut sign, &mut stack, &mut pwd);
                         }
                     },
                     Err(_e) => {
@@ -196,7 +194,7 @@ fn main() {
                         pwd.pop();
                         let update_list: UpdateList = serde_json::from_str(update.as_str()).unwrap();
                         if update_list.name.as_str() != help::get_version() {
-                            println!("There is an update available!\n    Your current version:     {}\n    Date of current version:  {}\n    New available version:    {}\n    Date of new version:      {}\n    Type of new version:      {}\n", help::get_version(), help::get_date(), update_list.name, update_list.date, update_list.r#type);
+                            println!("There is an update available!\n    Your current version:     {}\n    Date of current version:  {}\n    New available version:    {}\n    Date of new version:      {}\n    Type of new version:      {}\nYou can download the file of update to your computer, but before doing it check whether your cache directory is writable.\n", help::get_version(), help::get_date(), update_list.name, update_list.date, update_list.r#type);
                             print!("Do you want to download new version? [yes or no] $ ");
                             let mut input = String::new();
                             io::stdout().flush().unwrap();

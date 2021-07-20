@@ -1,7 +1,17 @@
+use std::path::Path;
+
+pub fn check_gopherweb_dir(path: &str) -> Result<(), String> {
+	if Path::new(&path).is_dir() {
+		Ok(())
+	} else {
+		Err(format!("Error: either the cache directory doesn't exist or Gopherweb cannot access it. Check whether you've created directory at {} and whether it's writable for everyone.", path))
+	}
+}
+
 pub fn help() -> &'static str {
 "Usage of inner command prompt:
 	
-    visit [URL host]
+	visit [URL host]
 		Moves you directly to the root directory of given URL. The URL mustn't contain 
 		`gopher://` protocol scheme. Example: `visit gopher.floodgap.com`
 
@@ -12,8 +22,9 @@ pub fn help() -> &'static str {
 		Changes directory to the one marked by number printed after doing either
 		`visit` or `cd`. You can also use `cd ..` to move to previous directory.
 
-    show [number]
-        Shows a file marked by number. Works in the same way as `cd`, but for obvious reason there is no `show ..`.
+	show [number]
+		Shows a file marked by number. Works in the same way as `cd`, but for 
+		obvious reason there is no `show ..`.
 
 	ls
 		Displays content of the directory you're currently into (its Gophermap).
@@ -50,6 +61,19 @@ pub fn help() -> &'static str {
 
 pub fn changelog() -> &'static str {
 "Changelog of Gopherweb:
+
+	Version 0.1.3 - 20 Jul 2021 12:18:01 CEST:
+	[+] Correcting typos in readme and help.
+	[+] Adding information about necessity of creating cache directory 
+	before using Gopherweb. The Gopherweb now check whether directory
+	exists - if it doesn't, you'll see an error.
+	[+] Changing location of cache directory from C:\\Program Files\\gopherweb
+	to C:\\gopherweb on Windows.
+	[+] Fixing error on connect macro which resulted in not changing
+	host when selector pointed at different one.
+	[+] Fixing error which resulted on halting Gopherweb when trying to show
+	file with non-UTF-8 content.
+	[+] Adding alias `cat` to `show`, similarly to known tool.
     
     Version 0.1.2 - 12 Jul 2021 11:00:38 CEST:
     [+] Now Gopherweb lets you download new version after `update`
@@ -75,9 +99,9 @@ pub fn changelog() -> &'static str {
 "}
 
 pub fn get_version() -> &'static str {
-    "0.1.2"
+    "0.1.3"
 }
 
 pub fn get_date() -> &'static str {
-    "12 Jul 2021 11:00:38 CEST"
+    "20 Jul 2021 12:18:01 CEST"
 }

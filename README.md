@@ -12,7 +12,7 @@ cargo build
 ```
 
 After installing create a cache directory. It's supposed to be located:
-- on Windows at `C:\Program Files\gopherweb` while
+- on Windows at `C:\gopherweb` while
 - on Linux at `/var/cache/gopherweb`.
 
 I'm going to add Makefile and automatize creating cache directory soon.
@@ -32,8 +32,9 @@ After launching binary you'll be moved into inner command prompt. The allowed ke
 		Changes directory to the one marked by number printed after doing either
 		`visit` or `cd`. You can also use `cd ..` to move to previous directory.
     
-	show [number]
-        	Shows a file marked by number. Works in the same way as `cd`, but for obvious reason there is no `show ..`.
+	show [number] OR cat [number]
+    	Shows content of a file marked by number. Works in the same way as `cd`, but for 
+		obvious reason there is no `show ..`.
 
 	ls
 		Displays content of the directory you're currently into (its Gophermap).
